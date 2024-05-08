@@ -2,10 +2,10 @@ const express = require("express");
 const router = express.Router();
 const providerController = require("../controllers/providerController");
 
-// Get provider by ID
-router.get("/:id", providerController.getProviderById);
+// Get all providers
+router.get("/all", providerController.getAllProviders);
 
-// Update provider schedule
-router.put("/:id/schedule", providerController.updateProviderSchedule);
+// Create a provider
+router.post("/create", providerController.createProvider);
 
 module.exports = router;

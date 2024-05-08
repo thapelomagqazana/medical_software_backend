@@ -1,15 +1,23 @@
-// Get provider by ID
-exports.getProviderById = (req, res) => {
-    // Implement logic to retrieve provider details from the database
-    const providerId = req.params.id;
-    // Example response
-    res.json({ id: providerId, name: "Dr. John Doe", specialty: "Cardiology" });
+const Provider = require("../models/providerModel");
+
+// Create a new provider
+exports.createProvider = async (req, res) => {
+    try {
+        const { name, specialty } = req.body;
+        const provider = new Provider({ name, specialty });
+        await provider.save();
+        res.status(201).json(provider);
+    }catch (error){
+        res.status(400).json({ message: error.message });
+    }
 };
 
-// Update provider schedule
-exports.updateProviderSchedule = (req, res) => {
-    // Implement logic to update provider schedule in the database
-    const providerId = req.params.id;
-    // Example response
-    res.json({ message: "Provider schedule updated successfully", providerId });
+// Get all providers
+exports.getAllProviders = async (req, res) => {
+    try {
+        const providers = await Provider.find();
+        res.status(200).json(providers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };

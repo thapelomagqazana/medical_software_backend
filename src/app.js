@@ -9,7 +9,10 @@ app.use(express.json());
 
 // Routes
 const appointmentRoutes = require("./routes/appointmentRoutes");
+const providerRoutes = require("./routes/providerRoutes");
+
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/providers", providerRoutes);
 
 
 module.exports = app;
