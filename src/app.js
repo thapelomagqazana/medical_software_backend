@@ -1,8 +1,15 @@
 const express = require("express");
+const cors = require("cors");
 
 require("dotenv").config();
 
 const app = express();
+
+const corsOptions = {
+    origin: "http://localhost:3001",
+};
+
+app.use(cors(corsOptions));
 
 // Middleware
 app.use(express.json());
