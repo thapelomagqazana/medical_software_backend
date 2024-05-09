@@ -49,3 +49,39 @@ exports.bookAppointment = async (req, res) => {
         res.status(500).json({ message: "Failed to book appointment." });
     }
 };
+
+// Cancel an appointment
+exports.cancelAppointment = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const appointment = await Appointment.findById(id);
+    
+        if (!appointment){
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        await Appointment.deleteOne(appointment._id);
+        res.status(200).json({ message: "Appointment canceled successfully" });
+    } catch (error){
+        res.status(500).json({ message: "Failed to cancel appointment" });
+    }
+};
+
+// Reschedule an appointment
+exports.updateAppointment = async (req, res) => {
+    try {
+        const { startTime, endTime } = req.body;
+        const appointment = await Appointment.findById(req.params.id);
+        if (!appointment){
+            return res.status(404).json({ message: "Appointment not found" });
+        }
+
+        appointment.startTime = startTime;
+        appointment.endTime = endTime;
+        await appointment.save();
+        res.status(200).json({ message: "Appointment rescheduled successfully" });
+    }
+    catch (error) {
+        res.status(500).json({ message: "Failed to reschedule appointment" });
+    }
+};

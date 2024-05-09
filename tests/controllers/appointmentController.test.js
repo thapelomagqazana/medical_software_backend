@@ -56,7 +56,61 @@ afterAll(async () => {
       expect(response.status).toBe(201);
       // Add more assertions as needed
     });
+
+    it('should delete an existing appointment', async () => {
+
+      // Perform the DELETE request
+      const response = await request(app).delete(`/api/appointments/${appointment._id}`);
+
+      // Check the response
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Appointment canceled successfully');
+
+      // Check if the appointment is deleted from the database
+      const deletedAppointment = await Appointment.findById(appointment._id);
+      expect(deletedAppointment).toBeNull();
   });
+
+  it('should return 404 if appointment not found', async () => {
+      // Perform the DELETE request with a non-existing appointment ID
+      const response = await request(app).delete(`/api/appointments/${new mongoose.Types.ObjectId()}`);
+
+      // Check the response
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe('Appointment not found');
+  });
+
+  it('should update the start and end time of an existing appointment', async () => {
+
+    const newStartTime = new Date();
+    const newEndTime = new Date();
+
+    // Perform the PUT request to reschedule the appointment
+    const response = await request(app)
+        .put(`/api/appointments/${appointment._id}`)
+        .send({ startTime: newStartTime, endTime: newEndTime });
+
+    // Check the response
+    expect(response.status).toBe(200);
+    expect(response.body.message).toBe('Appointment rescheduled successfully');
+
+    // Check if the appointment is updated in the database
+    const updatedAppointment = await Appointment.findById(appointment._id);
+    expect(updatedAppointment.startTime).toEqual(newStartTime);
+    expect(updatedAppointment.endTime).toEqual(newEndTime);
+});
+
+it('should return 404 if appointment not found', async () => {
+    // Perform the PUT request with a non-existing appointment ID
+    const response = await request(app)
+        .put(`/api/appointments/${new mongoose.Types.ObjectId()}`)
+        .send({ startTime: new Date(), endTime: new Date() });
+
+    // Check the response
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe('Appointment not found');
+});
+});
 
   describe('getAvailableSlots', () => {
     it('should return available slots', async () => {
@@ -158,3 +212,4 @@ describe('bookAppointment', () => {
         expect(res.json).toHaveBeenCalledWith({ message: 'Failed to book appointment.' });
     });
 });
+

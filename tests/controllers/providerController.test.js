@@ -21,11 +21,13 @@ afterAll(async () => {
 describe('Provider Controller', () => {
   // Before each test, clear the Provider collection and add test data
   beforeEach(async () => {
-    await Provider.deleteMany();
     await Provider.create({ name: 'Provider 1', specialty: 'Specialty 1' });
     await Provider.create({ name: 'Provider 2', specialty: 'Specialty 2' });
   });
 
+  afterEach(async () => {
+    await Provider.deleteMany();
+  });
   // Test case for creating a new provider
   it('should create a new provider', async () => {
     const response = await request(app)
