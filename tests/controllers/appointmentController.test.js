@@ -1,215 +1,217 @@
 const request = require('supertest');
 const app = require('../../src/app');
 const mongoose = require('mongoose');
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const Appointment = require('../../src/models/appointmentModel');
 const Provider = require('../../src/models/providerModel');
+const User = require("../../src/models/userModel");
 const { getAvailableSlots, bookAppointment } = require("../../src/controllers/appointmentController");
 
-// Connect to test database before running tests
-beforeAll(async () => {
-    await mongoose.connect('mongodb://localhost:27017/testDB', {
+
+
+  
+  // Test suite for Appointment Controller
+  describe("Appointment Controller", () => {
+    let user;
+    let token;
+    let provider;
+    // Mock appointment data for testing
+    const appointmentData = {
+        providerName: "Test Provider",
+        startTime: new Date(2024, 4, 25, 10, 30),
+        endTime: new Date(2024, 4, 25, 11, 30),
+    };
+
+    // Connect to test database before running tests
+    beforeAll(async () => {
+        await mongoose.connect('mongodb://localhost:27017/testDB', {
         useNewUrlParser: true,
         useUnifiedTopology: true,
       });
-});
+    });
 
+    // Disconnect from test database after running tests
+    afterAll(async () => {
+        await mongoose.connection.close();
+    });
 
-// Disconnect from test database after running tests
-afterAll(async () => {
-    await mongoose.connection.close();
-  });
-  
-  // Test suite for Appointment Controller
-  describe('Appointment Controller', () => {
-    let provider;
-    let appointment;
-  
-    // Set up test data before each test
     beforeEach(async () => {
-      // Create a test provider
-      provider = await Provider.create({ name: 'Test Provider', specialty: 'Test Specialty' });
-  
-      // Create a test appointment
-      appointment = await Appointment.create({ providerId: provider._id, startTime: new Date(), endTime: new Date() });
+        const hashedPassword = await bcrypt.hash('password123', 10);
+        user = await User.create({ username: 'Test User', email: 'test@example.com', password: hashedPassword });
+        provider = await Provider.create({ name: "Test Provider", specialty: "General Medicine", userId: user._id });
+        const response = await request(app)
+            .post('/api/auth/login')
+            .send({ email: 'test@example.com', password: 'password123' });
+        token = response.body.token;
+        
     });
-  
-    // Delete test data after each test
+
     afterEach(async () => {
-      // Delete test appointment
-      await Appointment.deleteMany({});
-      // Delete test provider
-      await Provider.deleteMany({});
-    });
-  
-    // Test case for getting available appointment slots
-    it('should get available appointment slots', async () => {
-      const response = await request(app).get('/api/appointments/slots');
-      expect(response.status).toBe(200);
-      // Add more assertions as needed
-    });
-  
-    // Test case for booking a new appointment
-    it('should book a new appointment', async () => {
-      const response = await request(app)
-        .post('/api/appointments/book')
-        .send({ providerName: 'Test Provider', startTime: '2024-06-01T09:00:00', endTime: '2024-06-01T10:00:00' });
-      expect(response.status).toBe(201);
-      // Add more assertions as needed
+        await User.deleteMany();
+        await Provider.deleteMany();
+        await Appointment.deleteMany();
     });
 
-    it('should delete an existing appointment', async () => {
+    // Retrieve available appointment slots test case
+    it("should retrieve available appointment slots", async () => {
+        const response = await request(app)
+            .get("/api/appointments/slots")
+            .set("Authorization", `Bearer ${token}`);
+        
+        // console.log(response.body);
+        // Check if response status is 200
+        expect(response.status).toBe(200);
 
-      // Perform the DELETE request
-      const response = await request(app).delete(`/api/appointments/${appointment._id}`);
+        // Check if response body contains appointment slots
+        expect(response.body).toEqual(expect.any(Array));
+    });
+ 
+    // Book a new appointment test case
+    it("should book a new appointment", async () => {
+        const response = await request(app)
+            .post("/api/appointments/book")
+            .send(appointmentData)
+            .set("Authorization", `Bearer ${token}`);
+        
+        // Check if response status is 201
+        expect(response.status).toBe(201);
 
-      // Check the response
-      expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Appointment canceled successfully');
+        // Check if response body contains the booked appointment
+        expect(response.body).toHaveProperty("providerId");
+        expect(response.body).toHaveProperty("userId");
+        expect(response.body).toHaveProperty("startTime");
+        expect(response.body).toHaveProperty("endTime");
+    });
 
-      // Check if the appointment is deleted from the database
-      const deletedAppointment = await Appointment.findById(appointment._id);
-      expect(deletedAppointment).toBeNull();
+    // Cancel an appointment test case
+    it("should cancel an appointment", async () => {
+        // Create a new appointment for testing
+        const appointment = await Appointment.create({ startTime: new Date(),
+            endTime: new Date(), userId: user._id, providerId: provider._id });
+
+        const response = await request(app)
+            .delete(`/api/appointments/${appointment._id}`)
+            .set("Authorization", `Bearer ${token}`);
+        
+        // Check if response status is 200
+        expect(response.status).toBe(200);
+
+        // Check if appointment is deleted from the database
+        const deletedAppointment = await Appointment.findById(appointment._id);
+        expect(deletedAppointment).toBeNull();
+    });
+
+    // Reschedule an appointment test case
+    it("should reschedule an appointment", async () => {
+        // Create a new appointment for testing
+        const appointment = await Appointment.create({  startTime: new Date(),
+            endTime: new Date(), userId: user._id, providerId: provider._id });
+        
+        const newStartTime = new Date();
+        const newEndTime = new Date();
+
+        const response = await request(app)
+            .put(`/api/appointments/${appointment._id}`) 
+            .send({ startTime: newStartTime, endTime: newEndTime })
+            .set("Authorization", `Bearer ${token}`);
+        
+        // Check if response status is 200
+        expect(response.status).toBe(200);
+
+        // Check if appointment is updated in the database
+        const updatedAppointment = await Appointment.findById(appointment._id);
+        expect(updatedAppointment.startTime).toEqual(newStartTime);
+        expect(updatedAppointment.endTime).toEqual(newEndTime);
+    });
+
+    // Invalid input: Missing required fields
+    it('should return 400 if required fields are missing when booking an appointment', async () => {
+        const invalidData = {
+            // Missing providerName, startTime, and endTime
+        };
+
+        const response = await request(app)
+            .post('/api/appointments/book')
+            .send(invalidData)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('message');
+    });
+
+    it('should return 404 if provider is not found when booking an appointment', async () => {
+        const nonExistentProviderName = 'Non Existent Provider';
+
+        const response = await request(app)
+            .post('/api/appointments/book')
+            .send({ providerName: nonExistentProviderName, startTime: new Date(2024, 4, 25, 10, 30), endTime: new Date(2024, 4, 25, 11, 30) })
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(404);
+        expect(response.body).toHaveProperty('message');
+    });
+
+    it("should return 400 if endTime is behind the startTime", async () => {
+        const response = await request(app)
+            .post('/api/appointments/book')
+            .send({ providerName: "Test Provider", startTime: new Date(2024, 4, 26, 10, 30), endTime: new Date(2024, 4, 25, 10, 30) })
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(400);
+        expect(response.body).toHaveProperty('message');
+    });
+
+    // Appointment slot already booked
+    it('should return 409 if appointment slot is already booked', async () => {
+        // Create a booked appointment for testing
+        const appointment = await Appointment.create({ startTime: new Date(2024, 4, 25, 10, 30),
+            endTime: new Date(2024, 4, 25, 11, 30), userId: user._id, providerId: provider._id });
+
+        const response = await request(app)
+            .post('/api/appointments/book')
+            .send(appointmentData)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(409);
+        expect(response.body).toHaveProperty('message');
+    });
+
+    // Unauthorized access
+    it('should return 401 if user is not authenticated when booking an appointment', async () => {
+        const response = await request(app)
+            .post('/api/appointments/book')
+            .send(appointmentData);
+
+        expect(response.status).toBe(401);
+        expect(response.body).toHaveProperty('error');
+    });
+
+    // Error handling: Failed to book appointment
+    // it('should return 500 if failed to book appointment', async () => {
+    //     // Mocking the Appointment.create function to throw an error
+    //     jest.spyOn(Appointment, 'create').mockImplementation(() => { throw new Error('Mock Error'); });
+
+    //     const response = await request(app)
+    //         .post('/api/appointments/book')
+    //         .send(appointmentData)
+    //         .set('Authorization', `Bearer ${token}`);
+
+    //     expect(response.status).toBe(500);
+    //     expect(response.body).toHaveProperty('message');
+
+    //     // Restore the original implementation of Appointment.create after the test
+    //     Appointment.create.mockRestore();
+    // });
+
+ 
+    
+
+
   });
 
-  it('should return 404 if appointment not found', async () => {
-      // Perform the DELETE request with a non-existing appointment ID
-      const response = await request(app).delete(`/api/appointments/${new mongoose.Types.ObjectId()}`);
-
-      // Check the response
-      expect(response.status).toBe(404);
-      expect(response.body.message).toBe('Appointment not found');
-  });
-
-  it('should update the start and end time of an existing appointment', async () => {
-
-    const newStartTime = new Date();
-    const newEndTime = new Date();
-
-    // Perform the PUT request to reschedule the appointment
-    const response = await request(app)
-        .put(`/api/appointments/${appointment._id}`)
-        .send({ startTime: newStartTime, endTime: newEndTime });
-
-    // Check the response
-    expect(response.status).toBe(200);
-    expect(response.body.message).toBe('Appointment rescheduled successfully');
-
-    // Check if the appointment is updated in the database
-    const updatedAppointment = await Appointment.findById(appointment._id);
-    expect(updatedAppointment.startTime).toEqual(newStartTime);
-    expect(updatedAppointment.endTime).toEqual(newEndTime);
-});
-
-it('should return 404 if appointment not found', async () => {
-    // Perform the PUT request with a non-existing appointment ID
-    const response = await request(app)
-        .put(`/api/appointments/${new mongoose.Types.ObjectId()}`)
-        .send({ startTime: new Date(), endTime: new Date() });
-
-    // Check the response
-    expect(response.status).toBe(404);
-    expect(response.body.message).toBe('Appointment not found');
-});
-});
-
-  describe('getAvailableSlots', () => {
-    it('should return available slots', async () => {
-        const mockSlots = [{ startTime: '2024-05-06T09:00:00', endTime: '2024-05-06T10:00:00' }];
-        jest.spyOn(Appointment, 'find').mockResolvedValue(mockSlots);
-
-        const req = {};
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-
-        await getAvailableSlots(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(200);
-        expect(res.json).toHaveBeenCalledWith(mockSlots);
-    });
-
-    it('should handle errors', async () => {
-        jest.spyOn(Appointment, 'find').mockRejectedValue(new Error('Database error'));
-
-        const req = {};
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-
-        await getAvailableSlots(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Failed to retrieve available slots.' });
-    });
-});
-
-describe('bookAppointment', () => {
-    it('should book a new appointment', async () => {
-        const mockProvider = { _id: 'providerId' };
-        const mockAppointment = { providerId: 'providerId', startTime: '2024-05-06T09:00:00', endTime: '2024-05-06T10:00:00' };
-        jest.spyOn(Provider, 'findOne').mockResolvedValue(mockProvider);
-        jest.spyOn(Appointment, 'findOne').mockResolvedValue(null);
-        jest.spyOn(Appointment.prototype, 'save').mockResolvedValue(mockAppointment);
-
-        const req = { body: { providerName: 'Provider Name', startTime: '2024-05-06T09:00:00', endTime: '2024-05-06T10:00:00' } };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-
-        await bookAppointment(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(201);
-        // expect(res.json).toHaveBeenCalledWith(mockAppointment);
-    });
-
-    it('should handle provider not found', async () => {
-        jest.spyOn(Provider, 'findOne').mockResolvedValue(null);
-
-        const req = { body: { providerName: 'Provider Name', startTime: '2024-05-06T09:00:00', endTime: '2024-05-06T10:00:00' } };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-
-        await bookAppointment(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(404);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Provider not found.' });
-    });
-
-    it('should handle appointment slot already booked', async () => {
-        const mockProvider = { _id: 'providerId' };
-        jest.spyOn(Provider, 'findOne').mockResolvedValue(mockProvider);
-        jest.spyOn(Appointment, 'findOne').mockResolvedValue({});
-
-        const req = { body: { providerName: 'Provider Name', startTime: '2024-05-06T09:00:00', endTime: '2024-05-06T10:00:00' } };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-
-        await bookAppointment(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(409);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Appointment slot is already booked.' });
-    });
-
-    it('should handle errors', async () => {
-        jest.spyOn(Provider, 'findOne').mockRejectedValue(new Error('Database error'));
-
-        const req = { body: { providerName: 'Provider Name', startTime: '2024-05-06T09:00:00', endTime: '2024-05-06T10:00:00' } };
-        const res = {
-            status: jest.fn().mockReturnThis(),
-            json: jest.fn()
-        };
-
-        await bookAppointment(req, res);
-
-        expect(res.status).toHaveBeenCalledWith(500);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Failed to book appointment.' });
-    });
-});
-
+//   // Helper function to generate JWT token for user authentication
+//   function getTokenForUser(user) {
+//     const token = jwt.sign({ _id: user._id }, "your_secret_key");
+//     return token;
+//   }

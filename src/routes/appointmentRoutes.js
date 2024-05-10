@@ -1,18 +1,19 @@
 const express = require("express");
 const router = express.Router();
 const appointmentController = require("../controllers/appointmentController");
+const authenticateUser = require("../middleware/authenticateUser");
 
 // Retrieve available appointment slots
-router.get("/slots", appointmentController.getAvailableSlots);
+router.get("/slots", authenticateUser, appointmentController.getAvailableSlots);
 
 // Book a new appointment
-router.post("/book", appointmentController.bookAppointment);
+router.post("/book", authenticateUser, appointmentController.bookAppointment);
 
 // Cancel an appointment
-router.delete("/:id", appointmentController.cancelAppointment);
+router.delete("/:id", authenticateUser, appointmentController.cancelAppointment);
 
 // Reschedule an appointment
-router.put("/:id", appointmentController.updateAppointment);
+router.put("/:id", authenticateUser, appointmentController.updateAppointment);
 
 
 module.exports = router;

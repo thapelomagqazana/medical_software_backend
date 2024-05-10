@@ -17,7 +17,7 @@ exports.createProvider = async (req, res) => {
         }
 
         // Create and save the new provider
-        const provider = new Provider({ name, specialty });
+        const provider = new Provider({ name, specialty, userId: req.user._id });
         await provider.save();
         res.status(201).json(provider);
     }catch (error){

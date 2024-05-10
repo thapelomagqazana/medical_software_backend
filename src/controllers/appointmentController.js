@@ -4,7 +4,7 @@ const Provider = require("../models/providerModel");
 // Retrieve available appointment slots
 exports.getAvailableSlots = async (req, res) => {
     try {
-        const slots = await Appointment.find({ booked: false });
+        const slots = await Appointment.find({ userId: req.user._id, booked: false });
         res.status(200).json(slots);
     }
     catch (err) {
@@ -21,6 +21,12 @@ exports.bookAppointment = async (req, res) => {
     if (!providerName || !startTime || !endTime){
         return res.status(400).json({ message: "Provider name, start time, and end time are required." });
     }
+
+    // Check if endTime is ahead of startTime
+    if (endTime <= startTime) {
+        return res.status(400).json({ message: "End time must be after start time." });
+    }
+    
     try {
 
         // Find provider by name
@@ -38,6 +44,7 @@ exports.bookAppointment = async (req, res) => {
         // Create new appointment
         const appointment = new Appointment({
             providerId: provider._id,
+            userId: req.user._id,
             startTime,
             endTime
         });
