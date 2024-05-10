@@ -18,10 +18,12 @@ app.use(express.json());
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const providerRoutes = require("./routes/providerRoutes");
 const authRoutes = require("./routes/authRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/providers", providerRoutes);
+app.use("/api/messages", messageRoutes);
 
 
 module.exports = app;
