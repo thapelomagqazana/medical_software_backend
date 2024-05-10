@@ -27,13 +27,6 @@ describe('Authentication API', () => {
         email: 'test@example.com',
         password: 'password123'
     };
-
-    // Set up test data before each test
-    // beforeEach(async () => {
-    //     // Create a test user
-    //     user = await User.create(userData);
-    //   });
-    
       // Delete test data after each test
       afterEach(async () => {
         // Delete test user
