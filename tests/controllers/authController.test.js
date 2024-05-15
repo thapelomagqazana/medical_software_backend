@@ -23,7 +23,8 @@ afterAll(async () => {
 describe('Authentication API', () => {
     // Mock user data for testing
     const userData = {
-        username: 'Test User',
+        firstName: "Test", 
+        lastName: "User",
         email: 'test@example.com',
         password: 'password123'
     };

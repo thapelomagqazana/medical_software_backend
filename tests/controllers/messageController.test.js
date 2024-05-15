@@ -30,15 +30,16 @@ describe('Message Controller', () => {
 
     beforeEach(async () => {
         const hashedPassword = await bcrypt.hash('password123', 10);
-        sender = await User.create({ username: 'TestSender', email: 'test@example.com', password: hashedPassword });
+        sender = await User.create({ firstName: 'TestSender', lastName: "UserSender", email: 'test@example.com', password: hashedPassword });
 
         const hashedPassword2 = await bcrypt.hash('password555', 10);
-        admin = await User.create({ username: 'TestAdmin', email: 'testadmin@example.com', password: hashedPassword2 });
+        admin = await User.create({ firstName: 'TestAdmin', lastName: "UserAdmin", email: 'testadmin@example.com', password: hashedPassword2 });
 
         const hashedPassword1 = await bcrypt.hash('password144', 10);
         // Create a user for testing
         receiver = await User.create({
-            username: 'TestReceiver',
+            firstName: 'TestReceiver',
+            lastName: "Receiver",
             email: 'testreceiver@example.com',
             password: hashedPassword1
         });

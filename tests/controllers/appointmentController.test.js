@@ -38,7 +38,7 @@ const { getAvailableSlots, bookAppointment } = require("../../src/controllers/ap
 
     beforeEach(async () => {
         const hashedPassword = await bcrypt.hash('password123', 10);
-        user = await User.create({ username: 'Test User', email: 'test@example.com', password: hashedPassword });
+        user = await User.create({ firstName: 'Test', lastName: "User", email: 'test@example.com', password: hashedPassword });
         provider = await Provider.create({ name: "Test Provider", specialty: "General Medicine", userId: user._id });
         const response = await request(app)
             .post('/api/auth/login')

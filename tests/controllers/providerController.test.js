@@ -28,7 +28,7 @@ describe('Provider Controller', () => {
   // Before each test, clear the Provider collection and add test data
   beforeEach(async () => {
     const hashedPassword = await bcrypt.hash('password123', 10);
-    user = await User.create({ username: 'Test User', email: 'test@example.com', password: hashedPassword });
+    user = await User.create({ firstName: 'Test', lastName: "User", email: 'test@example.com', password: hashedPassword });
     provider = await Provider.create({ name: 'Provider 1', specialty: 'Specialty 1', userId: user._id });
     await Provider.create({ name: 'Provider 2', specialty: 'Specialty 2', userId: user._id });
     const response = await request(app)
