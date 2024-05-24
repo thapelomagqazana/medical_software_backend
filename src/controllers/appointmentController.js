@@ -92,3 +92,29 @@ exports.updateAppointment = async (req, res) => {
         res.status(500).json({ message: "Failed to reschedule appointment" });
     }
 };
+
+// Search for appointments
+exports.searchAppointments = async (req, res) => {
+    const { query } = req.query;
+    
+    try {
+        let appointments;
+        
+        if (query){
+            const regex = new RegExp(query, "i"); // Case-insensitive regex for partial matches
+
+            appointments = await Appointment.find().populate('providerId userId');
+            appointments = appointments.filter(appointment =>
+                regex.test(appointment.providerId.name) || regex.test(appointment.userId.firstName)
+            );
+            // console.log(appointments);
+        } else {
+            return res.status(400).json({ message: "Query is required" });
+        }
+
+        res.status(200).json(appointments);
+    } catch (error) {
+        // console.error('Error searching appointments:', error);
+        res.status(500).json({ message: 'Failed to search appointments.' });
+    }
+};

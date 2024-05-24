@@ -15,5 +15,7 @@ router.delete("/:id", authenticateUser, appointmentController.cancelAppointment)
 // Reschedule an appointment
 router.put("/:id", authenticateUser, appointmentController.updateAppointment);
 
+router.get("/search", authenticateUser, appointmentController.searchAppointments);
+
 
 module.exports = router;

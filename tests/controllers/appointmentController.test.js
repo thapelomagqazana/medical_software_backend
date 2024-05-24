@@ -187,31 +187,20 @@ const { getAvailableSlots, bookAppointment } = require("../../src/controllers/ap
         expect(response.body).toHaveProperty('error');
     });
 
-    // Error handling: Failed to book appointment
-    // it('should return 500 if failed to book appointment', async () => {
-    //     // Mocking the Appointment.create function to throw an error
-    //     jest.spyOn(Appointment, 'create').mockImplementation(() => { throw new Error('Mock Error'); });
+    it('should return appointments matching the search query', async () => {
+        await request(app)
+            .post("/api/appointments/book")
+            .send(appointmentData)
+            .set("Authorization", `Bearer ${token}`);
 
-    //     const response = await request(app)
-    //         .post('/api/appointments/book')
-    //         .send(appointmentData)
-    //         .set('Authorization', `Bearer ${token}`);
+        // Send a GET request to the search endpoint with the query parameter
+        const response = await request(app)
+            .get("/api/appointments/search")
+            .query({ query: 'Test Provider' })
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200);
 
-    //     expect(response.status).toBe(500);
-    //     expect(response.body).toHaveProperty('message');
-
-    //     // Restore the original implementation of Appointment.create after the test
-    //     Appointment.create.mockRestore();
-    // });
-
- 
-    
-
-
+        // Assert that the response contains appointments matching the search query
+        expect(response.body).toHaveLength(1); // Adjust the expected length based on your test data
+    });
   });
-
-//   // Helper function to generate JWT token for user authentication
-//   function getTokenForUser(user) {
-//     const token = jwt.sign({ _id: user._id }, "your_secret_key");
-//     return token;
-//   }
