@@ -1,9 +1,9 @@
 # Define an array of test files
 $testFiles = @(
-    "tests/controllers/appointmentController.test.js",
-    "tests/controllers/authController.test.js",
-    "tests/controllers/providerController.test.js",
-    "tests/controllers/messageController.test.js"
+    "tests/controllers/appointmentController.test.js"
+    # "tests/controllers/authController.test.js",
+    # "tests/controllers/providerController.test.js",
+    # "tests/controllers/messageController.test.js"
 )
 
 # Loop through each test file

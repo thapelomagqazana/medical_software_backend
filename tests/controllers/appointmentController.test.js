@@ -201,6 +201,7 @@ const { getAvailableSlots, bookAppointment } = require("../../src/controllers/ap
             .expect(200);
 
         // Assert that the response contains appointments matching the search query
+        // console.log(response.body);
         expect(response.body).toHaveLength(1); // Adjust the expected length based on your test data
     });
   });

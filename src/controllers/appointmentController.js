@@ -96,6 +96,7 @@ exports.updateAppointment = async (req, res) => {
 // Search for appointments
 exports.searchAppointments = async (req, res) => {
     const { query } = req.query;
+    // console.log(req.query);
     
     try {
         let appointments;
@@ -105,13 +106,13 @@ exports.searchAppointments = async (req, res) => {
 
             appointments = await Appointment.find().populate('providerId userId');
             appointments = appointments.filter(appointment =>
-                regex.test(appointment.providerId.name) || regex.test(appointment.userId.firstName)
+                regex.test(appointment.providerId.name) || regex.test(appointment.userId.firstName) || regex.test(appointment.userId.lastName)
             );
             // console.log(appointments);
         } else {
             return res.status(400).json({ message: "Query is required" });
         }
-
+        // console.log(appointments);
         res.status(200).json(appointments);
     } catch (error) {
         // console.error('Error searching appointments:', error);
